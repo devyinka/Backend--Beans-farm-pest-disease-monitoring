@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { startAggregationJobs } from "../utility/schedule";
 
 const parseBoolean = (value?: string): boolean => {
   return ["1", "true", "yes", "on"].includes((value ?? "").toLowerCase());
@@ -42,7 +43,7 @@ const connectDB = async (): Promise<void> => {
       serverSelectionTimeoutMS: 10000,
       autoIndex: process.env.NODE_ENV !== "production",
     });
-
+    startAggregationJobs();
     console.info("MongoDB connected successfully.");
   } catch (error) {
     const hint =

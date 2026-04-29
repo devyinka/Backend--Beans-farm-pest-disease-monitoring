@@ -1,5 +1,12 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { hashPassword } from "../helper/password";
+import { comparePassword } from "../helper/password";
+
 import type { login, signup } from "../type/types";
+import Register from "../Models/Register";
+
+const SALT_ROUNDS = 10;
 
 const signToken = (userId: string): string => {
   const secret = process.env.JWT_SECRET;
@@ -22,12 +29,34 @@ export const AUTHSERVICE = {
     phone,
     location,
     password,
-  }: signup) => {
-    throw new Error(`Signup is not wired yet for ${email}.`);
+  }: signup): Promise<any> => {
+    const existingUser = await Register.findOne({ email });
+    if (existingUser) {
+      throw new Error(`User with email ${email} already exists.`);
+    }
+    const newUser = new Register({
+      email,
+      firstName,
+      lastName,
+      phoneNumber: Number(phone),
+      machine_location: location,
+      token: signToken(crypto.randomBytes(16).toString("hex")),
+      password: await hashPassword(password),
+    });
+    await newUser.save();
+    return newUser;
   },
 
   login: async ({ email, password }: login) => {
-    throw new Error(`Login is not wired yet for ${email}.`);
+    const user = await Register.findOne({ email });
+    if (!user) {
+      throw new Error(`User with email ${email} not found.`);
+    }
+    const isMatch = await comparePassword(password, user.password);
+    if (!isMatch) {
+      throw new Error(`Invalid password for user with email ${email}.`);
+    }
+    return user;
   },
 
   forgetPassword: async (email: string) => {

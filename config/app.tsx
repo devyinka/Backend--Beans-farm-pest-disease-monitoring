@@ -6,11 +6,25 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import { rateLimit } from "express-rate-limit";
 import { errorHandler } from "../middleware/errorHandler";
+import registerRouter from "../Routes/Register";
 
 const app = express();
 
 // Configure CORS so the frontend can communicate with the backend safely.
-const allowedOrigin = process.env.FRONTEND_URL ?? "http://localhost:3000";
+const configuredFrontendOrigin = process.env.FRONTEND_URL?.trim().replace(
+  /^['\"]|['\"]$/g,
+  "",
+);
+
+const allowedOrigins = new Set(
+  [
+    configuredFrontendOrigin,
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+  ].filter(Boolean) as string[],
+);
 
 // Basic security headers (helmet) and gzip compression for better performance.
 app.use(helmet());
@@ -29,8 +43,22 @@ app.use(express.urlencoded({ extended: true }));
 // Cross-origin access policy for frontend app.
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: (origin, callback) => {
+      // Allow non-browser clients (curl, server-to-server) with no Origin header.
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
+    optionsSuccessStatus: 200,
   }),
 );
 
@@ -57,6 +85,9 @@ app.get("/health", (_req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// Register application routes.
+app.use("/auth", registerRouter);
 
 // Handle unknown routes with a clear API response.
 app.use((_req, res) => {
