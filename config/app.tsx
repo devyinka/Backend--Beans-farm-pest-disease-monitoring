@@ -7,6 +7,7 @@ import morgan from "morgan";
 import { rateLimit } from "express-rate-limit";
 import { errorHandler } from "../middleware/errorHandler";
 import registerRouter from "../Routes/Register";
+import loginRouter from "../Routes/login";
 
 const app = express();
 
@@ -88,6 +89,7 @@ app.get("/health", (_req, res) => {
 
 // Register application routes.
 app.use("/auth", registerRouter);
+app.use("/auth", loginRouter);
 
 // Handle unknown routes with a clear API response.
 app.use((_req, res) => {

@@ -7,6 +7,7 @@
   "type": "commonjs",
   "main": "dist/server.js",
   "scripts": {
+    "prestart": "npm run build",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "nodemon --watch . --ext ts,tsx,json --exec \"npm run build && node dist/server.js\"",

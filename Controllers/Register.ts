@@ -1,8 +1,12 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { AUTHSERVICE } from "../Services/Authservice";
 import { newUserprops } from "../type/types";
 
-export const Register = async (req: Request, res: Response) => {
+export const Register = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   const {
     firstName,
     lastName,
@@ -13,26 +17,17 @@ export const Register = async (req: Request, res: Response) => {
   } = req.body;
   try {
     const newUser = await AUTHSERVICE.signup({
+      email,
       firstName,
       lastName,
-      email,
-      password,
       phone: phoneNumber,
       location: machine_location,
+      password,
     } as newUserprops);
-    const newuser = {
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-      email: newUser.email,
-      phone: newUser.phoneNumber,
-      location: newUser.machine_location,
-      token: newUser.token,
-    };
-
     res
       .status(201)
-      .json({ message: "User created successfully", user: newuser });
+      .json({ message: "User created successfully", user: newUser });
   } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    next(error);
   }
 };

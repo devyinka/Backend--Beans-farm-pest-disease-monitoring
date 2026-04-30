@@ -1,14 +1,11 @@
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
 import { hashPassword } from "../helper/password";
 import { comparePassword } from "../helper/password";
-
 import type { login, signup } from "../type/types";
+import type { userdata } from "../type/types";
 import Register from "../Models/Register";
 
-const SALT_ROUNDS = 10;
-
-const signToken = (userId: string): string => {
+const signToken = (userId: any): string => {
   const secret = process.env.JWT_SECRET;
 
   if (!secret) {
@@ -21,6 +18,7 @@ const signToken = (userId: string): string => {
   });
 };
 
+//all the Authentication realated service
 export const AUTHSERVICE = {
   signup: async ({
     email,
@@ -34,21 +32,35 @@ export const AUTHSERVICE = {
     if (existingUser) {
       throw new Error(`User with email ${email} already exists.`);
     }
+
     const newUser = new Register({
       email,
       firstName,
       lastName,
-      phoneNumber: Number(phone),
+      phoneNumber: phone,
       machine_location: location,
-      token: signToken(crypto.randomBytes(16).toString("hex")),
       password: await hashPassword(password),
     });
     await newUser.save();
-    return newUser;
+    newUser.token = signToken(newUser._id);
+    await newUser.save();
+
+    const userdata = {
+      email,
+      firstName,
+      lastName,
+      machine_location: location,
+      token: newUser.token,
+    };
+    return userdata;
   },
 
-  login: async ({ email, password }: login) => {
-    const user = await Register.findOne({ email });
+  signin: async ({
+    email,
+    password,
+    machine_location,
+  }: login): Promise<userdata> => {
+    const user = await Register.findOne({ email, machine_location });
     if (!user) {
       throw new Error(`User with email ${email} not found.`);
     }
@@ -56,7 +68,15 @@ export const AUTHSERVICE = {
     if (!isMatch) {
       throw new Error(`Invalid password for user with email ${email}.`);
     }
-    return user;
+    const token = signToken(user._id);
+    user.token = token;
+    await user.save();
+    const userdata: userdata = {
+      email,
+      machine_location,
+      token,
+    };
+    return userdata;
   },
 
   forgetPassword: async (email: string) => {

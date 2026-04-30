@@ -9,11 +9,11 @@ const SigninSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  timeStamp: {
-    type: Date,
-    default: Date.now,
+  machinelocation: {
+    type: String,
     required: true,
   },
+
   email: {
     type: String,
     required: true,
@@ -23,23 +23,21 @@ const SigninSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
-  expireat: {
-    type: Number,
-    required: true,
-  },
   password: {
     type: String,
     required: true,
   },
-  machinelocation: {
-    type: String,
-    required: true,
-  },
+
   resetpasswordtoken: {
     type: String,
   },
   resetpasswordexpires: {
     type: Date,
+  },
+  timeStamp: {
+    type: Date,
+    default: Date.now,
+    required: true,
   },
 });
 SigninSchema.plugin(Autoincrement, { id: "signin_seq", inc_field: "__id" });

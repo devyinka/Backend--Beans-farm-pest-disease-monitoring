@@ -31,6 +31,7 @@ export interface signup {
 export interface login {
   email: string;
   password: string;
+  machine_location: string;
 }
 
 export interface newUserprops {
@@ -51,4 +52,10 @@ export interface AlertContext {
   soil_moisture_percent: number;
   rain_level_mm: number;
   avg_night_hum_percent: number;
+}
+
+export interface userdata {
+  email: string;
+  machine_location: string;
+  token: string;
 }
