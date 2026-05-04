@@ -59,3 +59,49 @@ export interface userdata {
   machine_location: string;
   token: string;
 }
+
+export interface RawsensorData {
+  machine_location: string;
+  temperature: number;
+  humidity: number;
+  soil_ph: number;
+  soil_moisture: number;
+  light_intensity: number;
+  rain_level: number;
+}
+
+export type FarmDashboardStatus = "healthy" | "disease" | "pest";
+
+export interface FarmSensorReading {
+  id: string;
+  label: string;
+  value: number;
+  unit: string;
+}
+
+export interface FarmAIData {
+  ui_status: FarmDashboardStatus;
+  ui_title: string;
+  spray_action: string;
+  description: string;
+  confidence: number;
+  sms_alert_sent: boolean;
+}
+
+export interface FarmInfo {
+  name: string;
+  location: string;
+}
+
+export interface FarmUpdatePayload {
+  timestamp: string;
+  datainterval?: number;
+  sensors: FarmSensorReading[];
+  AIData: FarmAIData;
+  farmInfo: FarmInfo;
+}
+
+export interface FarmUpdateResult {
+  pollingRateMinutes: number;
+  payload: FarmUpdatePayload;
+}

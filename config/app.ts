@@ -8,24 +8,13 @@ import { rateLimit } from "express-rate-limit";
 import { errorHandler } from "../middleware/errorHandler";
 import registerRouter from "../Routes/Register";
 import loginRouter from "../Routes/login";
+import savesensordata from "../Routes/rawSensor";
+import { getAllowedOrigins } from "./origins";
 
 const app = express();
 
-// Configure CORS so the frontend can communicate with the backend safely.
-const configuredFrontendOrigin = process.env.FRONTEND_URL?.trim().replace(
-  /^['\"]|['\"]$/g,
-  "",
-);
-
-const allowedOrigins = new Set(
-  [
-    configuredFrontendOrigin,
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
-  ].filter(Boolean) as string[],
-);
+// Configure CORS so the frontend and approved device origins can communicate safely.
+const allowedOrigins = new Set(getAllowedOrigins());
 
 // Basic security headers (helmet) and gzip compression for better performance.
 app.use(helmet());
@@ -45,7 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow non-browser clients (curl, server-to-server) with no Origin header.
+      // Allow non-browser clients (curl, ESP32 HTTP clients, server-to-server) with no Origin header.
       if (!origin) {
         callback(null, true);
         return;
@@ -90,6 +79,7 @@ app.get("/health", (_req, res) => {
 // Register application routes.
 app.use("/auth", registerRouter);
 app.use("/auth", loginRouter);
+app.use("/sensor", savesensordata);
 
 // Handle unknown routes with a clear API response.
 app.use((_req, res) => {

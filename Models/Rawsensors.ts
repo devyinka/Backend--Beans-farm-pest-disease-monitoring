@@ -13,11 +13,7 @@ const RawsensorsSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  timeStamp: {
-    type: Date,
-    default: Date.now,
-    required: true,
-  },
+
   temperature: {
     type: Number,
     required: true,
@@ -26,20 +22,25 @@ const RawsensorsSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  rainLevel: {
+  rain_level: {
     type: Number,
     required: true,
   },
-  soilMoisture: {
+  soil_moisture: {
     type: Number,
     required: true,
   },
-  lightLevel: {
+  light_level: {
     type: Number,
     required: true,
   },
-  soilPH: {
+  soil_ph: {
     type: Number,
+    required: true,
+  },
+  timeStamp: {
+    type: Date,
+    default: Date.now,
     required: true,
   },
 });

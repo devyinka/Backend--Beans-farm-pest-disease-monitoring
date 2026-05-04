@@ -7,7 +7,21 @@ export const LogIn = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { email, password, machine_location } = req.body as login;
+  const body = req.body as Partial<login> & {
+    loginUser?: string;
+    username?: string;
+  };
+
+  const email = body.email ?? body.loginUser ?? body.username;
+  const { password, machine_location } = body;
+
+  if (!email || !password || !machine_location) {
+    res.status(400).json({
+      message: "Email, password, and machine location are required.",
+    });
+    return;
+  }
+
   try {
     const user = await AUTHSERVICE.signin({
       email,

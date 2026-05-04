@@ -60,7 +60,7 @@ export const AUTHSERVICE = {
     password,
     machine_location,
   }: login): Promise<userdata> => {
-    const user = await Register.findOne({ email, machine_location });
+    const user = await Register.findOne({ email });
     if (!user) {
       throw new Error(`User with email ${email} not found.`);
     }
@@ -73,7 +73,7 @@ export const AUTHSERVICE = {
     await user.save();
     const userdata: userdata = {
       email,
-      machine_location,
+      machine_location: user.machine_location ?? machine_location,
       token,
     };
     return userdata;
