@@ -5,7 +5,6 @@ const Autoincrement = AutoincrementFactory(mongoose);
 const AIpredictionSchema = new mongoose.Schema({
   __id: {
     type: Number,
-    required: true,
     unique: true,
   },
   timeStamp: {

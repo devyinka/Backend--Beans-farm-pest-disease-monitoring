@@ -114,8 +114,8 @@ export const runAggregate = async (
     }
 
     // ── STEP 6: Soil moisture and pH ───────────────────────────────────────
-    const soilMoistureValues = readings.map((r) => r.soilMoisture);
-    const soilPhValues = readings.map((r) => r.soilPH);
+    const soilMoistureValues = readings.map((r) => r.soil_moisture);
+    const soilPhValues = readings.map((r) => r.soil_ph);
 
     const avgSoilMoisture =
       Math.round(
@@ -133,7 +133,7 @@ export const runAggregate = async (
     //  Sum all rain readings in the window
     const totalRainMm =
       Math.round(
-        readings.reduce((sum, r) => sum + (r.rainLevel || 0), 0) * 10,
+        readings.reduce((sum, r) => sum + (r.rain_level || 0), 0) * 10,
       ) / 10;
 
     // ── STEP 8: Sunlight hours ─────────────────────────────────────────────

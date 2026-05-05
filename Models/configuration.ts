@@ -20,7 +20,6 @@ interface ConfigurationDoc {
 const ConfigurationSchema = new mongoose.Schema<ConfigurationDoc>({
   __id: {
     type: Number,
-    required: true,
     unique: true,
   },
 

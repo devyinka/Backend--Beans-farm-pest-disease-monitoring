@@ -6,7 +6,6 @@ const Autoincrement = AutoincrementFactory(mongoose);
 const SigninSchema = new mongoose.Schema({
   __id: {
     type: Number,
-    required: true,
     unique: true,
   },
   machinelocation: {

@@ -6,7 +6,6 @@ const Autoincrement = AutoincrementFactory(mongoose);
 const FrontEndUISchema = new mongoose.Schema({
   _id: {
     type: Number,
-    required: true,
     unique: true,
   },
   timeStamp: {

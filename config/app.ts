@@ -31,24 +31,35 @@ app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // Cross-origin access policy for frontend app.
+// app.use(
+//   cors({
+//     origin: (origin, callback) => {
+//       // Allow non-browser clients (curl, ESP32 HTTP clients, server-to-server) with no Origin header.
+//       if (!origin) {
+//         callback(null, true);
+//         return;
+//       }
+
+//       if (allowedOrigins.has(origin)) {
+//         callback(null, true);
+//         return;
+//       }
+
+//       callback(new Error(`CORS blocked for origin: ${origin}`));
+//     },
+//     credentials: true,
+//     optionsSuccessStatus: 200,
+//   }),
+// );
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow non-browser clients (curl, ESP32 HTTP clients, server-to-server) with no Origin header.
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      if (allowedOrigins.has(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error(`CORS blocked for origin: ${origin}`));
-    },
+    origin: [
+      "https://wokwi.com",
+      "http://localhost:3000",
+      "https://wokwi.com/projects/460235036009124865",
+    ], // Allows Wokwi and your Next.js app
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
-    optionsSuccessStatus: 200,
   }),
 );
 

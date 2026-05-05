@@ -19,7 +19,6 @@ const Autoincrement = AutoincrementFactory(mongoose);
 const DailyAggregateSchema = new mongoose.Schema({
   __id: {
     type: Number,
-    required: true,
     unique: true,
   },
 
