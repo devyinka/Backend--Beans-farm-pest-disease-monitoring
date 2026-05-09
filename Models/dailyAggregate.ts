@@ -82,12 +82,6 @@ const DailyAggregateSchema = new mongoose.Schema({
     // Evening: slightly lower (sun and heat dry the soil)
   },
 
-  soil_ph: {
-    type: Number,
-    required: true,
-    // Average of all pH readings — stable, rarely changes
-  },
-
   sunlight_hours: {
     type: Number,
     required: true,

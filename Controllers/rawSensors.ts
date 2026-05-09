@@ -7,9 +7,8 @@ export const createRawsensorData = async (req: Request, res: Response) => {
     machine_location,
     temperature,
     humidity,
-    soil_ph,
     soil_moisture,
-    light_intensity,
+    light_level,
     rain_level,
   } = req.body as RawsensorData;
 
@@ -19,9 +18,8 @@ export const createRawsensorData = async (req: Request, res: Response) => {
       machine_location,
       temperature,
       humidity,
-      soil_ph,
       soil_moisture,
-      light_intensity,
+      light_level,
       rain_level,
     });
     console.log("=== DATA SAVED TO MONGODB SUCCESSFULLY ===");

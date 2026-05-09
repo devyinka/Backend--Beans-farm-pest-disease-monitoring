@@ -1,11 +1,6 @@
 import mongoose from "mongoose";
 
 const AlertHistorySchema = new mongoose.Schema({
-  timeStamp: {
-    type: Date,
-    default: Date.now,
-    required: true,
-  },
   machine_location: {
     type: String,
     required: true,
@@ -15,16 +10,12 @@ const AlertHistorySchema = new mongoose.Schema({
     required: true,
   },
   smsAlertSent: {
-    type: Boolean,
+    type: String,
     required: true,
   },
   alertSentAt: {
     type: Date,
     required: true,
-  },
-  farmer_aknowledge: {
-    type: Boolean,
-    default: false,
   },
   status: {
     type: String,
@@ -32,6 +23,11 @@ const AlertHistorySchema = new mongoose.Schema({
   },
   confidence: {
     type: Number,
+    required: true,
+  },
+  timeStamp: {
+    type: Date,
+    default: Date.now,
     required: true,
   },
 });

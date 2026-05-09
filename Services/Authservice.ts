@@ -119,4 +119,11 @@ export const AUTHSERVICE = {
   getMe: async (userId: string) => {
     return { id: userId };
   },
+
+  getPhoneNumberByLocation: async (
+    location: string,
+  ): Promise<string | null> => {
+    const user = await Register.findOne({ machine_location: location });
+    return user?.phoneNumber || null;
+  },
 };

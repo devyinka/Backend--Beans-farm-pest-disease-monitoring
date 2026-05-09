@@ -9,7 +9,7 @@ import { get10DaysTrend } from "../helper/dailaggregation";
 import { calcSunlightHours } from "../helper/dailaggregation";
 import { calcStressIndex } from "../helper/dailaggregation";
 import { sendFarmAlert } from "./smsAlert";
-import alertHistory from "../Models/alertHistory";
+import { ALERTHISTORYSERVICE } from "../Services/alertHistoryService";
 
 // environment
 const FAST_API_URL = process.env.FAST_API_URL;
@@ -18,7 +18,6 @@ export const runAggregate = async (
   machineLocation: string,
   timeOfDay: "morning" | "evening",
 ) => {
-  let SmsResult: boolean = false;
   let Health_status: string;
   let Prediction: string;
   let Confidence_percentage: number;
@@ -115,7 +114,6 @@ export const runAggregate = async (
 
     // ── STEP 6: Soil moisture and pH ───────────────────────────────────────
     const soilMoistureValues = readings.map((r) => r.soil_moisture);
-    const soilPhValues = readings.map((r) => r.soil_ph);
 
     const avgSoilMoisture =
       Math.round(
@@ -123,11 +121,6 @@ export const runAggregate = async (
           soilMoistureValues.length) *
           10,
       ) / 10;
-
-    const avgSoilPh =
-      Math.round(
-        (soilPhValues.reduce((a, b) => a + b, 0) / soilPhValues.length) * 100,
-      ) / 100;
 
     // ── STEP 7: Rain level ─────────────────────────────────────────────────
     //  Sum all rain readings in the window
@@ -184,7 +177,6 @@ export const runAggregate = async (
       avg_day_hum_percent: avgDayHum,
       avg_night_hum_percent: avgNightHum,
       soil_moisture_percent: avgSoilMoisture,
-      soil_ph: avgSoilPh,
       sunlight_hours: sunlightHours,
       rain_level_mm: totalRainMm,
       leaf_wetness_hours: leafWetnessHours,
@@ -227,7 +219,6 @@ export const runAggregate = async (
       "Avg_Day_Hum_%": avgDayHum,
       "Avg_Night_Hum_%": avgNightHum,
       "Soil_Moisture_%": avgSoilMoisture,
-      Soil_pH: avgSoilPh,
       Sunlight_Hours: sunlightHours,
       Rain_Level_mm: totalRainMm,
       Leaf_Wetness_Hours: leafWetnessHours,
@@ -247,7 +238,6 @@ export const runAggregate = async (
     const aiResponse = await axios.post(
       `${FAST_API_URL}/predict`,
       fastApiPayload,
-      { timeout: 15000 },
     );
 
     const { health_status, prediction, confidence_percentage } =
@@ -277,7 +267,6 @@ export const runAggregate = async (
         avg_day_hum_percent: avgDayHum,
         avg_night_hum_percent: avgNightHum,
         soil_moisture_percent: avgSoilMoisture,
-        soil_ph: avgSoilPh,
         sunlight_hours: sunlightHours,
         rain_level_mm: totalRainMm,
         leaf_wetness_hours: leafWetnessHours,
@@ -295,6 +284,7 @@ export const runAggregate = async (
       },
 
       ai_result: {
+        farm_status: health_status,
         prediction,
         confidence_percentage,
       },
@@ -325,29 +315,37 @@ export const runAggregate = async (
       );
 
       // Call the sendFarmAlert function and await its result
-      const smsResult = await sendFarmAlert(
+      const smsAlertResult = await sendFarmAlert(
         prediction,
         confidence_percentage,
         alertContext,
       );
+
+      const alertTimestamp = new Date();
+
+      // Create an alert history record in MongoDB
+      const alertRecord = await ALERTHISTORYSERVICE.create({
+        machine_location: machineLocation,
+        farmstatus: prediction,
+        smsAlertSent: smsAlertResult.success ? "alert sent" : "alert failed",
+        alertSentAt: alertTimestamp,
+        status: prediction,
+        confidence: confidence_percentage,
+        timeStamp: alertTimestamp,
+      });
+
+      console.log(
+        `[Aggregation] Alert history record created — ID: ${alertRecord._id}`,
+      );
     } else {
       console.log(
-        `[Aggregation] ✓ No alert needed — prediction: ${prediction} (${confidence_percentage}%)`,
+        `[Aggregation] Alert threshold not met — no SMS sent for: ${prediction}`,
       );
     }
 
     console.log(
       `[Aggregation] ✅ ${timeOfDay} run complete for ${machineLocation}\n`,
     );
-
-    const alertRecord = new alertHistory({
-      machine_location: machineLocation,
-      time_of_day: timeOfDay,
-      health_status: Health_status,
-      prediction: Prediction,
-      confidence_percentage: Confidence_percentage,
-      sms_sent: SmsResult,
-    });
   } catch (error: any) {
     console.error(
       `[Aggregation] ❌ Error during ${timeOfDay} run for ${machineLocation}:`,

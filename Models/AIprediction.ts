@@ -1,12 +1,6 @@
 import mongoose from "mongoose";
-import AutoincrementFactory from "mongoose-sequence";
 
-const Autoincrement = AutoincrementFactory(mongoose);
 const AIpredictionSchema = new mongoose.Schema({
-  __id: {
-    type: Number,
-    unique: true,
-  },
   timeStamp: {
     type: Date,
     default: Date.now,
@@ -42,7 +36,6 @@ const AIpredictionSchema = new mongoose.Schema({
     avg_day_hum_percent: { type: Number, default: 0 },
     avg_night_hum_percent: { type: Number, default: 0 },
     soil_moisture_percent: { type: Number, default: 0 },
-    soil_ph: { type: Number, default: 0 },
     sunlight_hours: { type: Number, default: 0 },
     rain_level_mm: { type: Number, default: 0 },
 
@@ -63,6 +56,9 @@ const AIpredictionSchema = new mongoose.Schema({
 
   // --- THE AI PREDICTION (Python's Output) ---
   ai_result: {
+    farm_status: {
+      type: String,
+    },
     prediction: {
       type: String,
       required: true,
@@ -72,11 +68,6 @@ const AIpredictionSchema = new mongoose.Schema({
       required: true,
     },
   },
-});
-
-AIpredictionSchema.plugin(Autoincrement, {
-  id: "aiprediction_seq",
-  inc_field: "__id",
 });
 
 export default mongoose.model("AIPrediction", AIpredictionSchema);

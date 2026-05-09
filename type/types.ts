@@ -64,9 +64,8 @@ export interface RawsensorData {
   machine_location: string;
   temperature: number;
   humidity: number;
-  soil_ph: number;
   soil_moisture: number;
-  light_intensity: number;
+  light_level: number;
   rain_level: number;
 }
 
@@ -105,3 +104,32 @@ export interface FarmUpdateResult {
   pollingRateMinutes: number;
   payload: FarmUpdatePayload;
 }
+
+export type AlertHistoryRecord = {
+  machine_location: string;
+  farmstatus: string;
+  smsAlertSent: string;
+  alertSentAt: Date;
+  status: string;
+  confidence: number;
+  timeStamp: Date;
+};
+
+export type PredictionProfile = {
+  ui_status: FarmDashboardStatus;
+  ui_title: string;
+  spray_action: string;
+  description: string;
+};
+
+export type BuildFarmPayloadArgs = {
+  machineLocation: string;
+  temperature: number;
+  humidity: number;
+  rainLevel: number;
+  soilMoisture: number;
+  light_level: number;
+  pollingRateMinutes: number;
+  prediction?: string | null;
+  confidence?: number | null;
+};

@@ -11,6 +11,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "dev": "nodemon --watch . --ext ts,tsx,json --exec \"npm run build && node dist/server.js\"",
+    "seed:rawsensors": "node seed_db.js",
     "test": "echo \"No backend tests configured yet\""
   },
   "dependencies": {

@@ -2,6 +2,7 @@ import type { Namespace, Server as SocketIOServer, Socket } from "socket.io";
 
 let farmNamespace: Namespace | null = null;
 
+// Register the farm namespace and set up event handlers for client connections.
 export const registerFarmNamespace = (io: SocketIOServer): Namespace => {
   farmNamespace = io.of("/");
 

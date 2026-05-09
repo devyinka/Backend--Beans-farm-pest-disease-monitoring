@@ -141,22 +141,6 @@ export const buildMessage = (prediction: string, ctx: AlertContext): string => {
       `Increase irrigation to cool root zone. ` +
       `Water early morning — not midday.`,
 
-    "Disorder: Iron Chlorosis (High pH)":
-      header +
-      `IRON CHLOROSIS DETECTED — SOIL PH TOO HIGH\n` +
-      `Conditions: Soil pH likely above 7.0 — iron unavailable to roots.\n` +
-      `Action: Apply iron sulfate (ferrous sulfate) as soil drench or foliar spray. ` +
-      `Lower soil pH with sulfur application. ` +
-      `Beans prefer pH 6.0–6.8 — test soil this week.`,
-
-    "Disorder: Manganese Toxicity (Low pH)":
-      header +
-      `MANGANESE TOXICITY DETECTED — SOIL PH TOO LOW\n` +
-      `Conditions: Soil pH likely below 5.5 — excess manganese absorbed by roots.\n` +
-      `Action: Apply agricultural lime (calcium carbonate) to raise soil pH. ` +
-      `Target pH: 6.0–6.8 for beans. ` +
-      `Do not apply manganese fertilisers until resolved.`,
-
     "Disorder: Nitrogen Leaching":
       header +
       `NITROGEN LEACHING RISK DETECTED\n` +

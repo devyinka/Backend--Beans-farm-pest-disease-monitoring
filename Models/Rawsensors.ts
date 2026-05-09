@@ -30,10 +30,6 @@ const RawsensorsSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  soil_ph: {
-    type: Number,
-    required: true,
-  },
   timeStamp: {
     type: Date,
     default: Date.now,

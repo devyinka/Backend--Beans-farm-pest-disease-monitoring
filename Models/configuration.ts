@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-import AutoincrementFactory from "mongoose-sequence";
-
-const Autoincrement = AutoincrementFactory(mongoose);
 
 interface ConfigurationDoc {
   __id: number;
@@ -105,11 +102,6 @@ const ConfigurationSchema = new mongoose.Schema<ConfigurationDoc>({
     type: Date,
     default: Date.now,
   },
-});
-
-ConfigurationSchema.plugin(Autoincrement, {
-  id: "configuration_seq",
-  inc_field: "__id",
 });
 
 export default mongoose.model<ConfigurationDoc>(

@@ -3,6 +3,7 @@ import { getFarmNamespace } from "../namespace/farm.namespace";
 
 export const FARM_UPDATE_EVENT = "farmupdate";
 
+//i connected this to the fronted at DashboardPage.tsx in the useEffect that listens to the farmupdate event. I also added a console log to make sure it works and it does. I will now connect this to the backend where the farm data is updated and emit the event with the new data.
 export const emitFarmUpdate = (payload: FarmUpdatePayload): void => {
   const farmNamespace = getFarmNamespace();
 

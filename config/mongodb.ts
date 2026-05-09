@@ -43,7 +43,9 @@ const connectDB = async (): Promise<void> => {
       serverSelectionTimeoutMS: 10000,
       autoIndex: process.env.NODE_ENV !== "production",
     });
+    //this is where we start the aggregation jobs after the database connection is established. This ensures that the jobs have access to the database and can run without issues.
     startAggregationJobs();
+
     console.info("MongoDB connected successfully.");
   } catch (error) {
     const hint =

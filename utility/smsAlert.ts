@@ -1,6 +1,7 @@
 import twilio from "twilio";
 import { AlertContext } from "../type/types";
 import { buildMessage } from "../helper/message";
+import { AUTHSERVICE } from "../Services/Authservice";
 
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID!,
@@ -8,40 +9,29 @@ const client = twilio(
 );
 
 const FROM_PHONE = process.env.TWILIO_FROM_PHONE!;
-const FARMER_PHONE1 = process.env.FARMER_PHONE1;
-const FARMER_PHONE2 = process.env.FARMER_PHONE2;
-
-const FARMER_PHONE_NUMBERS: string[] = [
-  FARMER_PHONE1 || "",
-  FARMER_PHONE2 || "",
-].filter(Boolean);
 
 export async function sendFarmAlert(
   prediction: string,
   confidence: number,
   context: AlertContext,
 ): Promise<{ success: boolean; sids: string[]; errors: string[] }> {
-  if (FARMER_PHONE_NUMBERS.length === 0) {
-    console.error("[Twilio] No farmer phone numbers configured in .env");
-    return {
-      success: false,
-      sids: [],
-      errors: ["No phone numbers configured"],
-    };
+  const FARMER_PHONE_NUMBER = await AUTHSERVICE.getPhoneNumberByLocation(
+    context.machine_location,
+  );
+  if (!FARMER_PHONE_NUMBER) {
+    console.error(
+      `[Twilio] ✗ No phone number found for location ${context.machine_location}. Alert not sent.`,
+    );
+    return { success: false, sids: [], errors: ["No phone number found."] };
   }
 
   const messageBody = buildMessage(prediction, { ...context, confidence });
-
-  console.log(
-    `[Twilio] Sending alert to ${FARMER_PHONE_NUMBERS.length} number(s)...`,
-  );
-  console.log(`[Twilio] Prediction: ${prediction} (${confidence}%)`);
 
   const sids: string[] = [];
   const errors: string[] = [];
 
   // Send to every configured phone number
-  for (const toNumber of FARMER_PHONE_NUMBERS) {
+  for (const toNumber of [FARMER_PHONE_NUMBER]) {
     try {
       const message = await client.messages.create({
         body: messageBody,
@@ -65,18 +55,15 @@ export async function sendFarmAlert(
   };
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-//  SAFE CONDITION — optional daily summary SMS
-//
-//  Called from aggregation job when prediction === "Safe"
-//  and you want to send a daily "all clear" message.
-//  This is OPTIONAL — only runs if SEND_SAFE_SMS=true in .env
-// ════════════════════════════════════════════════════════════════════════════
+// This function can be called after every AI prediction, even if conditions are safe, to keep farmers informed with a daily summary of their farm's status. It will only send if SEND_SAFE_SMS is set to "true" in the environment variables, allowing you to control whether safe condition summaries are sent out.
 export async function sendSafeConditionSummary(
   context: AlertContext,
 ): Promise<void> {
   if (process.env.SEND_SAFE_SMS !== "true") return;
-  if (FARMER_PHONE_NUMBERS.length === 0) return;
+  const FARMER_PHONE_NUMBER = await AUTHSERVICE.getPhoneNumberByLocation(
+    context.machine_location,
+  );
+  if (!FARMER_PHONE_NUMBER) return;
 
   const time = context.time_of_day === "morning" ? "Morning" : "Evening";
   const body =
@@ -86,7 +73,7 @@ export async function sendSafeConditionSummary(
     `Rain: ${context.rain_level_mm}mm\n\n` +
     `All conditions SAFE. No action needed.`;
 
-  for (const toNumber of FARMER_PHONE_NUMBERS) {
+  for (const toNumber of [FARMER_PHONE_NUMBER]) {
     try {
       await client.messages.create({ body, from: FROM_PHONE, to: toNumber });
       console.log(`[Twilio] ✓ Safe summary sent to ${toNumber}`);

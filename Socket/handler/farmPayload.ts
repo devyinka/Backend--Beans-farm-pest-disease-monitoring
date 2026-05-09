@@ -3,28 +3,9 @@ import type {
   FarmInfo,
   FarmSensorReading,
   FarmUpdatePayload,
-  FarmDashboardStatus,
+  PredictionProfile,
+  BuildFarmPayloadArgs,
 } from "../../type/types";
-
-type PredictionProfile = {
-  ui_status: FarmDashboardStatus;
-  ui_title: string;
-  spray_action: string;
-  description: string;
-};
-
-type BuildFarmPayloadArgs = {
-  machineLocation: string;
-  temperature: number;
-  humidity: number;
-  rainLevel: number;
-  soilMoisture: number;
-  lightIntensity: number;
-  soilPh: number;
-  pollingRateMinutes: number;
-  prediction?: string | null;
-  confidence?: number | null;
-};
 
 const normalizePrediction = (value: string): string =>
   value
@@ -163,20 +144,6 @@ const predictionDictionary: Record<string, PredictionProfile> = {
     description:
       "Intense sunlight and high temperature can scorch the crop. Protect vulnerable plants from direct heat.",
   },
-  "iron chlorosis": {
-    ui_status: "disease",
-    ui_title: "Iron Chlorosis Detected",
-    spray_action: "Apply iron sulfate and lower soil pH.",
-    description:
-      "Soil pH may be too high for iron uptake. Adjust the soil and monitor leaf yellowing.",
-  },
-  "manganese toxicity": {
-    ui_status: "disease",
-    ui_title: "Manganese Toxicity Detected",
-    spray_action: "Apply agricultural lime to raise soil pH.",
-    description:
-      "Low soil pH can increase manganese toxicity. Correct the soil chemistry before symptoms worsen.",
-  },
   "nitrogen leaching": {
     ui_status: "disease",
     ui_title: "Nitrogen Leaching Risk Detected",
@@ -232,14 +199,14 @@ const resolvePredictionProfile = (
   );
 };
 
+// Build the payload for the frontend dashboard with the latest sensor data, AI prediction, and farm info.
 export const buildFarmUpdatePayload = ({
   machineLocation,
   temperature,
   humidity,
   rainLevel,
   soilMoisture,
-  lightIntensity,
-  soilPh,
+  light_level,
   pollingRateMinutes,
   prediction,
   confidence,
@@ -256,8 +223,7 @@ export const buildFarmUpdatePayload = ({
     { id: "hum", label: "Air Humidity", value: humidity, unit: "%" },
     { id: "rain", label: "Rain Level", value: rainLevel, unit: "mm" },
     { id: "soil", label: "Soil Moisture", value: soilMoisture, unit: "%" },
-    { id: "light", label: "Light Level", value: lightIntensity, unit: "Lux" },
-    { id: "ph", label: "Soil pH", value: soilPh, unit: "pH" },
+    { id: "light", label: "Light Level", value: light_level, unit: "Lux" },
   ];
 
   const aiData: FarmAIData = {

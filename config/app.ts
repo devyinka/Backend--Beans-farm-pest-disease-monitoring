@@ -10,7 +10,8 @@ import registerRouter from "../Routes/Register";
 import loginRouter from "../Routes/login";
 import savesensordata from "../Routes/rawSensor";
 import { getAllowedOrigins } from "./origins";
-
+import alertHistoryRouter from "../Routes/alertHistory";
+import getUIRouter from "../Routes/getUI";
 const app = express();
 
 // Configure CORS so the frontend and approved device origins can communicate safely.
@@ -30,27 +31,6 @@ app.use(cookieParser());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Cross-origin access policy for frontend app.
-// app.use(
-//   cors({
-//     origin: (origin, callback) => {
-//       // Allow non-browser clients (curl, ESP32 HTTP clients, server-to-server) with no Origin header.
-//       if (!origin) {
-//         callback(null, true);
-//         return;
-//       }
-
-//       if (allowedOrigins.has(origin)) {
-//         callback(null, true);
-//         return;
-//       }
-
-//       callback(new Error(`CORS blocked for origin: ${origin}`));
-//     },
-//     credentials: true,
-//     optionsSuccessStatus: 200,
-//   }),
-// );
 app.use(
   cors({
     origin: [
@@ -80,18 +60,12 @@ app.get("/", (_req, res) => {
   });
 });
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  });
-});
-
 // Register application routes.
 app.use("/auth", registerRouter);
 app.use("/auth", loginRouter);
 app.use("/sensor", savesensordata);
-
+app.use("/alert", alertHistoryRouter);
+app.use("/ui", getUIRouter);
 // Handle unknown routes with a clear API response.
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found." });

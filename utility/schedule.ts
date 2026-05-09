@@ -1,24 +1,9 @@
-
-import cron from "node-cron"
+import cron from "node-cron";
 import { runAggregate } from "./dailyAggregationJob.js";
 import configuration from "../Models/configuration";
 
-// ════════════════════════════════════════════════════════════════════════════
-//  MAIN: Register cron jobs
-//
-//  Runs for EVERY machine_location in the Configuration collection.
-//  This means if I add a second ESP32 device, I just add a new
-//  Configuration document — no code changes needed.
-//
-//  Schedule:
-//    Morning → 6:00 AM every day  (cron: "0 6 * * *")
-//    Evening → 6:00 PM every day  (cron: "0 18 * * *")
-//
-//  Timezone: Africa/Lagos (WAT = UTC+1)
-// ════════════════════════════════════════════════════════════════════════════
-
-export function startAggregationJobs()
-{
+// This file sets up the scheduled aggregation jobs that run every morning and evening. It uses node-cron to schedule the tasks and pulls the latest configuration for each farm to ensure the aggregation runs with the correct parameters. The actual aggregation logic is handled in dailyAggregationJob.ts, which is called by these scheduled tasks.
+export function startAggregationJobs() {
   // ── MORNING JOB — 6:00 AM every day ──────────────────────────────────────
   cron.schedule(
     "0 6 * * *",

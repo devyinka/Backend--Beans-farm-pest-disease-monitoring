@@ -1,47 +1,36 @@
 import mongoose from "mongoose";
-import AutoincrementFactory from "mongoose-sequence";
-
-const Autoincrement = AutoincrementFactory(mongoose);
 
 const FrontEndUISchema = new mongoose.Schema({
-  _id: {
-    type: Number,
-    unique: true,
-  },
-  timeStamp: {
-    type: Date,
-    default: Date.now,
-    required: true,
-  },
   machine_location: {
     type: String,
     required: true,
   },
   sensors: [
     {
+      _id: false,
       id: { type: String, required: true },
       label: { type: String, required: true },
-      value: { type: Number, required: true },
+      value: { type: Number, required: true, default: 0 },
       unit: { type: String, required: true },
     },
   ],
+  datainterval: { type: Number, default: 30 },
   AIData: {
-    ui_status: { type: String, required: true },
-    ui_title: { type: String, required: true },
-    spray_action: { type: String, required: true },
-    description: { type: String, required: true },
-    confidence: { type: Number, required: true },
-    sms_alert_sent: { type: Boolean, required: true },
+    ui_status: { type: String, default: "healthy" },
+    ui_title: { type: String, default: "Awaiting Data" },
+    spray_action: { type: String, default: "No action required." },
+    description: { type: String, default: "Fetching latest analysis..." },
+    confidence: { type: Number, default: 0 },
+    sms_alert_sent: { type: Boolean, default: false },
   },
   farmInfo: {
-    name: { type: String, required: true },
-    location: { type: String, required: true },
+    name: { type: String, default: "Unknown Location" },
+    location: { type: String, default: "Unknown Location" },
   },
-});
-
-FrontEndUISchema.plugin(Autoincrement, {
-  id: "front_end_ui_seq",
-  inc_field: "_id",
+  timeStamp: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 export default mongoose.model("FrontEndUI", FrontEndUISchema);
