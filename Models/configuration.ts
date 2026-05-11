@@ -15,12 +15,6 @@ interface ConfigurationDoc {
 }
 
 const ConfigurationSchema = new mongoose.Schema<ConfigurationDoc>({
-  __id: {
-    type: Number,
-    unique: true,
-  },
-
-  // Which farm location this config belongs to
   machine_location: {
     type: String,
     required: true,
@@ -28,11 +22,8 @@ const ConfigurationSchema = new mongoose.Schema<ConfigurationDoc>({
     // Must match the machine_location in Rawsensors and DailyAggregate
   },
 
-  // ── BEAN PLANTING INFO ────────────────────────────────────────────
-  // Set this ONCE when you plant. Age is then auto-calculated forever.
   BeanPlantingDate: {
     type: Date,
-    required: true,
     // Example: new Date("2025-03-01")
     // Node.js will calculate age as:
     //   Math.floor((Date.now() - config.BeanPlantingDate) / 86400000)

@@ -12,6 +12,11 @@ import savesensordata from "../Routes/rawSensor";
 import { getAllowedOrigins } from "./origins";
 import alertHistoryRouter from "../Routes/alertHistory";
 import getUIRouter from "../Routes/getUI";
+import updateESP32andAIRouter from "../Routes/updateESP32&AI";
+import { getSensorPollingRateRouter } from "../Routes/updateESP32&AI";
+import { beanPlantingDateRouter } from "../Routes/beansplantingdate";
+import { updateBeanPlantingDateRouter } from "../Routes/beansplantingdate";
+
 const app = express();
 
 // Configure CORS so the frontend and approved device origins can communicate safely.
@@ -66,6 +71,10 @@ app.use("/auth", loginRouter);
 app.use("/sensor", savesensordata);
 app.use("/alert", alertHistoryRouter);
 app.use("/ui", getUIRouter);
+app.use("/Device", updateESP32andAIRouter);
+app.use("/get", getSensorPollingRateRouter);
+app.use("/get", beanPlantingDateRouter);
+app.use("/update", updateBeanPlantingDateRouter);
 // Handle unknown routes with a clear API response.
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found." });

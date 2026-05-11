@@ -54,7 +54,6 @@ export async function sendFarmAlert(
     errors,
   };
 }
-
 // This function can be called after every AI prediction, even if conditions are safe, to keep farmers informed with a daily summary of their farm's status. It will only send if SEND_SAFE_SMS is set to "true" in the environment variables, allowing you to control whether safe condition summaries are sent out.
 export async function sendSafeConditionSummary(
   context: AlertContext,
