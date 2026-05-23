@@ -3,7 +3,7 @@ import http from "http";
 import app from "./config/app";
 import connectDB from "./config/mongodb";
 import initializeSocket from "./Socket";
-
+import { connectMQTT } from "./utility/mqtt";
 dotenv.config();
 
 const PORT = Number(process.env.PORT ?? 5000);
@@ -29,7 +29,7 @@ const handleServerError = (error: NodeJS.ErrnoException): void => {
 const bootstrap = async (): Promise<void> => {
   // Connect to MongoDB before accepting incoming requests.
   await connectDB();
-
+  await connectMQTT();
   // Create one HTTP server and attach both Express and Socket.IO to it.
   const server = http.createServer(app);
   initializeSocket(server);

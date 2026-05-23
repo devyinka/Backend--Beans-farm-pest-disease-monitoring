@@ -3,12 +3,12 @@ import Rawsensors from "../Models/Rawsensors";
 import DailyAggregate from "../Models/dailyAggregate";
 import Configuration from "../Models/configuration";
 import AIprediction from "../Models/AIprediction";
-import { getBeansGrowthStage } from "../helper/dailaggregation";
-import { calcLeafWetnessHours } from "../helper/dailaggregation";
-import { get10DaysTrend } from "../helper/dailaggregation";
-import { calcSunlightHours } from "../helper/dailaggregation";
-import { calcStressIndex } from "../helper/dailaggregation";
-import { sendFarmAlert } from "./smsAlert";
+import { getBeansGrowthStage } from "./dailaggregation";
+import { calcLeafWetnessHours } from "./dailaggregation";
+import { get10DaysTrend } from "./dailaggregation";
+import { calcSunlightHours } from "./dailaggregation";
+import { calcStressIndex } from "./dailaggregation";
+import { sendFarmAlert } from "../utility/smsAlert";
 import { ALERTHISTORYSERVICE } from "../Services/alertHistoryService";
 
 // environment
@@ -71,12 +71,12 @@ export const runAggregate = async (
       `[Aggregation] Found ${readings.length} raw readings in window`,
     );
 
-    // ── STEP 4: Extract temperature readings ───────────────────────────────
+    
     const temps = readings.map((r) => r.temperature);
     const maxTempC = Math.round(Math.max(...temps) * 10) / 10;
     const minTempC = Math.round(Math.min(...temps) * 10) / 10;
 
-    // ── STEP 5: Humidity averages ──────────────────────────────────────────
+    
     //  Morning: all readings are night → avg_day = 0, avg_night = avg of all
     //  Evening: split readings by hour → day = 6AM–6PM, night = from yesterday
     let avgDayHum = 0;
@@ -112,7 +112,7 @@ export const runAggregate = async (
         : avgDayHum; // fallback
     }
 
-    // ── STEP 6: Soil moisture and pH ───────────────────────────────────────
+    //soil moisture average
     const soilMoistureValues = readings.map((r) => r.soil_moisture);
 
     const avgSoilMoisture =
@@ -121,15 +121,14 @@ export const runAggregate = async (
           soilMoistureValues.length) *
           10,
       ) / 10;
-
-    // ── STEP 7: Rain level ─────────────────────────────────────────────────
+    
     //  Sum all rain readings in the window
     const totalRainMm =
       Math.round(
         readings.reduce((sum, r) => sum + (r.rain_level || 0), 0) * 10,
       ) / 10;
 
-    // ── STEP 8: Sunlight hours ─────────────────────────────────────────────
+   //sunlight hours calculation based on lux readings, time of day, and sensor polling rate
     const sunlightHours = calcSunlightHours(
       readings,
       config.luxThreshold,
@@ -137,12 +136,12 @@ export const runAggregate = async (
       config.sensorPollingRateMinutes,
     );
 
-    // ── STEP 9: 10-day historical trend ────────────────────────────────────
+    // 10-day trends require historical data, so we use the date of "today" (with time set to 00:00) to look back 10 days in the helper function
     const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     const trend = await get10DaysTrend(machineLocation, today, config);
 
-    // ── STEP 10: Leaf wetness hours ────────────────────────────────────────
+    //leaf wetness hours calculation based on humidity, rain, and 10-day wet night trends
     const leafWetnessHours = calcLeafWetnessHours(
       readings,
       avgNightHum,
@@ -150,7 +149,7 @@ export const runAggregate = async (
       config.luxThreshold,
     );
 
-    // ── STEP 11: Cumulative stress index ───────────────────────────────────
+    // Beans stress index calculation based on current conditions and 10-day trends
     const cumulativeStressIndex = calcStressIndex(
       trend.hot_days_past_10_days,
       trend.wet_nights_past_10_days,
@@ -159,13 +158,13 @@ export const runAggregate = async (
       trend.flooded_days_past_10_days,
     );
 
-    // ── STEP 12: Bean status ───────────────────────────────────────────────
+    // Bean status ───────────────────────────────────────────────
     const plantAgeDays = Math.floor(
       (Date.now() - new Date(config.BeanPlantingDate).getTime()) / 86400000,
     );
     const growthStage = getBeansGrowthStage(plantAgeDays);
 
-    // ── STEP 13: Build the aggregate document ──────────────────────────────
+    // Build the aggregate document
     const aggregateData = {
       machine_location: machineLocation,
       date: today,
@@ -182,20 +181,20 @@ export const runAggregate = async (
       leaf_wetness_hours: leafWetnessHours,
       cumulative_stress_index: cumulativeStressIndex,
 
-      // 10-day trend
+    
       ...trend,
 
       // Bean status
       plant_age_days: plantAgeDays,
       growth_stage: growthStage,
 
-      // Meta
+    
       readings_count: readings.length,
       ai_prediction_sent: false,
       ai_prediction_id: null,
     };
 
-    // ── STEP 14: Save DailyAggregate to MongoDB ────────────────────────────
+    //
     const saved = await DailyAggregate.findOneAndUpdate(
       {
         machine_location: machineLocation,
@@ -208,17 +207,16 @@ export const runAggregate = async (
 
     console.log(`[Aggregation] DailyAggregate saved — ID: ${saved._id}`);
 
-    // ── STEP 15: Build FastAPI payload ─────────────────────────────────────
+
     //  Field names must match the training dataset column names exactly
     const fastApiPayload = {
       Time_of_Day: timeOfDay,
       Plant_Age_Days: plantAgeDays,
-      Growth_Stage: growthStage,
       Max_Temp_C: maxTempC,
       Min_Temp_C: minTempC,
-      "Avg_Day_Hum_%": avgDayHum,
-      "Avg_Night_Hum_%": avgNightHum,
-      "Soil_Moisture_%": avgSoilMoisture,
+       Avg_Day_Hum: avgDayHum,
+      Avg_Night_Hum: avgNightHum,
+      Soil_Moisture: avgSoilMoisture,
       Sunlight_Hours: sunlightHours,
       Rain_Level_mm: totalRainMm,
       Leaf_Wetness_Hours: leafWetnessHours,
@@ -232,7 +230,7 @@ export const runAggregate = async (
         trend.total_rain_volume_mm_past_10_days,
     };
 
-    // ── STEP 16: Call FastAPI ──────────────────────────────────────────────
+   //fastapi call
     console.log(`[Aggregation] Calling FastAPI at ${FAST_API_URL}/predict ...`);
 
     const aiResponse = await axios.post(
@@ -251,7 +249,7 @@ export const runAggregate = async (
       `[Aggregation] AI result → ${prediction} (${confidence_percentage}% confidence)`,
     );
 
-    // ── STEP 17: Save AIPrediction to MongoDB ──────────────────────────────
+    //Save AIPrediction to MongoDB 
     const aiDoc = await AIprediction.create({
       machine_location: machineLocation,
       time_of_day: timeOfDay,
@@ -290,7 +288,7 @@ export const runAggregate = async (
       },
     });
 
-    // ── STEP 18: Link AIPrediction back to DailyAggregate ─────────────────
+    // Update the DailyAggregate with AI prediction info
     await DailyAggregate.findByIdAndUpdate(saved._id, {
       ai_prediction_sent: true,
       ai_prediction_id: aiDoc._id,

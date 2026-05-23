@@ -16,6 +16,8 @@ import updateESP32andAIRouter from "../Routes/updateESP32&AI";
 import { getSensorPollingRateRouter } from "../Routes/updateESP32&AI";
 import { beanPlantingDateRouter } from "../Routes/beansplantingdate";
 import { updateBeanPlantingDateRouter } from "../Routes/beansplantingdate";
+import testingRouter from "../Routes/Testing";
+import sprayingRouter from "../Routes/spraying";
 
 const app = express();
 
@@ -75,6 +77,8 @@ app.use("/Device", updateESP32andAIRouter);
 app.use("/get", getSensorPollingRateRouter);
 app.use("/get", beanPlantingDateRouter);
 app.use("/update", updateBeanPlantingDateRouter);
+app.use("/test",testingRouter)
+app.use("/spraying", sprayingRouter);
 // Handle unknown routes with a clear API response.
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found." });

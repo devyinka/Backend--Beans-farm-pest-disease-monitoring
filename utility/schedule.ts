@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { runAggregate } from "./dailyAggregationJob.js";
+import { runAggregate } from "../helper/dailyAggregationJob.js";
 import configuration from "../Models/configuration";
 
 // This file sets up the scheduled aggregation jobs that run every morning and evening. It uses node-cron to schedule the tasks and pulls the latest configuration for each farm to ensure the aggregation runs with the correct parameters. The actual aggregation logic is handled in dailyAggregationJob.ts, which is called by these scheduled tasks.

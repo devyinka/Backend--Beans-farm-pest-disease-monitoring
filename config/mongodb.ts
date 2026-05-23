@@ -15,6 +15,13 @@ const isMongoRequired = (): boolean => {
   return process.env.NODE_ENV === "production";
 };
 
+const getMongoHostForHint = (uri: string): string | undefined => {
+  // Best-effort extraction of host without leaking credentials.
+  // Works for both mongodb:// and mongodb+srv:// URIs.
+  const match = uri.match(/^mongodb(?:\+srv)?:\/\/(?:[^@/]+@)?([^/?#]+)/i);
+  return match?.[1];
+};
+
 const connectDB = async (): Promise<void> => {
   // Read MongoDB connection string from environment variables.
   const uri = process.env.MONGODB_URI;
@@ -48,8 +55,15 @@ const connectDB = async (): Promise<void> => {
 
     console.info("MongoDB connected successfully.");
   } catch (error) {
-    const hint =
-      "MongoDB connection failed. If you use Atlas, whitelist your current IP in Network Access.";
+    const hostHint = uri ? getMongoHostForHint(uri) : undefined;
+    const baseHint =
+      "MongoDB connection failed. If you use Atlas, confirm Network Access allows your egress IP and that your network allows outbound TCP to MongoDB (default port 27017).";
+
+    const portHint = hostHint
+      ? ` Quick check from this machine: \`timeout 5 bash -lc '</dev/tcp/${hostHint}/27017'\`.`
+      : "";
+
+    const hint = `${baseHint}${portHint} Error details: ${String(error)}`;
 
     if (required) {
       console.error(hint);

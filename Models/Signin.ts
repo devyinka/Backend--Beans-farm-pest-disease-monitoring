@@ -1,8 +1,8 @@
-import e from "express";
-import mongoose from "mongoose";
-import AutoincrementFactory from "mongoose-sequence";
 
-const Autoincrement = AutoincrementFactory(mongoose);
+import mongoose from "mongoose";
+// import AutoincrementFactory from "mongoose-sequence";
+
+// const Autoincrement = AutoincrementFactory(mongoose);
 const SigninSchema = new mongoose.Schema({
   __id: {
     type: Number,
@@ -39,5 +39,5 @@ const SigninSchema = new mongoose.Schema({
     required: true,
   },
 });
-SigninSchema.plugin(Autoincrement, { id: "signin_seq", inc_field: "__id" });
+//  SigninSchema.plugin(Autoincrement, { id: "signin_seq", inc_field: "__id" });
 export default mongoose.model("Signin", SigninSchema);

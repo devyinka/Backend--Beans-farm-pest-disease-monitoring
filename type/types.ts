@@ -133,3 +133,25 @@ export type BuildFarmPayloadArgs = {
   prediction?: string | null;
   confidence?: number | null;
 };
+
+export interface TestAIPayload {
+  machine_location: string;
+  Time_of_Day: number; // 0 for morning, 1 for night
+  Growth_Stage: string;
+  Plant_Age_Days: number;
+  Max_Temp_C: number;
+  Min_Temp_C: number;
+  Avg_Day_Hum: number;
+  Avg_Night_Hum: number;
+  Soil_Moisture: number;
+  Sunlight_Hours: number;
+  Rain_Level_mm: number;
+  Leaf_Wetness_Hours: number;
+  Cumulative_Stress_Index: number;
+  Hot_Days_Past_10_Days: number;
+  Wet_Nights_Past_10_Days: number;
+  Dry_Soil_Days_Past_10_Days: number;
+  Flooded_Days_Past_10_Days: number;
+  Rainy_Days_Past_10_Days: number;
+  Total_Rain_Volume_mm_Past_10_Days: number;
+}
