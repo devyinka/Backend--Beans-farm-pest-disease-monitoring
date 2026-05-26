@@ -50,7 +50,8 @@ app.use(
   }),
 );
 
-// Small global rate limiter to reduce abuse in a default setup.
+
+
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -67,12 +68,14 @@ app.get("/", (_req, res) => {
   });
 });
 
+
+
 // Register application routes.
 app.use("/auth", registerRouter);
 app.use("/auth", loginRouter);
 app.use("/sensor", savesensordata);
 app.use("/alert", alertHistoryRouter);
-app.use("/ui", getUIRouter);
+app.use("/UIStatus", getUIRouter);
 app.use("/Device", updateESP32andAIRouter);
 app.use("/get", getSensorPollingRateRouter);
 app.use("/get", beanPlantingDateRouter);

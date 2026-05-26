@@ -8,11 +8,21 @@ import { calcLeafWetnessHours } from "./dailaggregation";
 import { get10DaysTrend } from "./dailaggregation";
 import { calcSunlightHours } from "./dailaggregation";
 import { calcStressIndex } from "./dailaggregation";
-import { sendFarmAlert } from "../utility/smsAlert";
+import { sendFarmAlert } from "../utility/terminSmS";
 import { ALERTHISTORYSERVICE } from "../Services/alertHistoryService";
 
 // environment
-const FAST_API_URL = process.env.FAST_API_URL;
+const getFastApiUrl = (): string => {
+  const fastApiUrl = process.env.FAST_API_URL;
+
+  if (!fastApiUrl) {
+    throw new Error(
+      "FAST_API_URL is not configured. Set it in backend/.env before running daily aggregation.",
+    );
+  }
+
+  return fastApiUrl;
+};
 
 export const runAggregate = async (
   machineLocation: string,
@@ -21,6 +31,7 @@ export const runAggregate = async (
   let Health_status: string;
   let Prediction: string;
   let Confidence_percentage: number;
+  const FAST_API_URL = getFastApiUrl();
 
   try {
     const config = await Configuration.findOne({
@@ -238,15 +249,15 @@ export const runAggregate = async (
       fastApiPayload,
     );
 
-    const { health_status, prediction, confidence_percentage } =
+    const {status, threat_name, percentage } =
       aiResponse.data;
 
-    Health_status = health_status;
-    Prediction = prediction;
-    Confidence_percentage = confidence_percentage;
+    Health_status = status;
+    Prediction = threat_name;
+    Confidence_percentage = percentage;
 
     console.log(
-      `[Aggregation] AI result → ${prediction} (${confidence_percentage}% confidence)`,
+      `[Aggregation] AI result → ${threat_name} (${percentage}% confidence)`,
     );
 
     //Save AIPrediction to MongoDB 
@@ -282,9 +293,9 @@ export const runAggregate = async (
       },
 
       ai_result: {
-        farm_status: health_status,
-        prediction,
-        confidence_percentage,
+        farm_status:Health_status,
+        Prediction,
+         Confidence_percentage,
       },
     });
 
@@ -297,7 +308,7 @@ export const runAggregate = async (
     const alertContext = {
       machine_location: machineLocation,
       time_of_day: timeOfDay,
-      confidence: confidence_percentage,
+      confidence: Confidence_percentage,
       plant_age_days: plantAgeDays,
       growth_stage: growthStage,
       max_temp_c: maxTempC,
@@ -307,15 +318,15 @@ export const runAggregate = async (
     };
 
     // ── STEP 19: Send SMS alert if confidence meets threshold ──────────────
-    if (confidence_percentage >= config.aiConfidence && prediction !== "Safe") {
+    if (Confidence_percentage >= config.aiConfidence && Prediction !== "Safe") {
       console.log(
-        `[Aggregation] ⚠ Alert threshold met — SMS will be sent for: ${prediction}`,
+        `[Aggregation] ⚠ Alert threshold met — SMS will be sent for: ${Prediction}`,
       );
 
       // Call the sendFarmAlert function and await its result
       const smsAlertResult = await sendFarmAlert(
-        prediction,
-        confidence_percentage,
+        Prediction,
+        Confidence_percentage,
         alertContext,
       );
 
@@ -324,11 +335,11 @@ export const runAggregate = async (
       // Create an alert history record in MongoDB
       const alertRecord = await ALERTHISTORYSERVICE.create({
         machine_location: machineLocation,
-        farmstatus: prediction,
+        farmstatus: Prediction,
         smsAlertSent: smsAlertResult.success ? "alert sent" : "alert failed",
         alertSentAt: alertTimestamp,
-        status: prediction,
-        confidence: confidence_percentage,
+        status: Prediction,
+        confidence: Confidence_percentage,
         timeStamp: alertTimestamp,
       });
 
@@ -337,7 +348,7 @@ export const runAggregate = async (
       );
     } else {
       console.log(
-        `[Aggregation] Alert threshold not met — no SMS sent for: ${prediction}`,
+        `[Aggregation] Alert threshold not met — no SMS sent for: ${Prediction}`,
       );
     }
 

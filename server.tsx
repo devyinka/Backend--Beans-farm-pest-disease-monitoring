@@ -1,10 +1,9 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import http from "http";
 import app from "./config/app";
 import connectDB from "./config/mongodb";
 import initializeSocket from "./Socket";
 import { connectMQTT } from "./utility/mqtt";
-dotenv.config();
 
 const PORT = Number(process.env.PORT ?? 5000);
 

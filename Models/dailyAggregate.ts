@@ -1,26 +1,7 @@
 import mongoose from "mongoose";
-import AutoincrementFactory from "mongoose-sequence";
 
-const Autoincrement = AutoincrementFactory(mongoose);
 
-/**
- * DailyAggregate Schema
- *
- * This collection is the BRIDGE between raw sensor readings (Rawsensors)
- * and the AI prediction model (FastAPI).
- *
- * Created TWICE per day by the aggregation cron job:
- *   → 6:00 AM  → time_of_day: "morning"  (covers 6PM yesterday → 6AM today)
- *   → 6:00 PM  → time_of_day: "evening"  (covers 6AM today    → 6PM today)
- *
- * After saving, the cron job immediately calls FastAPI with this document
- * and saves the AI result to the AIPrediction collection.
- */
 const DailyAggregateSchema = new mongoose.Schema({
-  __id: {
-    type: Number,
-    unique: true,
-  },
 
   // Which ESP32 device produced this aggregate
   machine_location: {
@@ -215,14 +196,5 @@ const DailyAggregateSchema = new mongoose.Schema({
 });
 
 // Compound index: one aggregate per location per date per time_of_day
-DailyAggregateSchema.index(
-  { machine_location: 1, date: 1, time_of_day: 1 },
-  { unique: true },
-);
-
-DailyAggregateSchema.plugin(Autoincrement, {
-  id: "dailyaggregate_seq",
-  inc_field: "__id",
-});
 
 export default mongoose.model("DailyAggregate", DailyAggregateSchema);

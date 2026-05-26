@@ -2,16 +2,32 @@ import axios from "axios";
 import AIprediction from "../Models/AIprediction";
 import DailyAggregate from "../Models/dailyAggregate";
 import Configuration from "../Models/configuration";
-import { sendFarmAlert } from "../utility/smsAlert";
+import { sendFarmAlert } from "../utility/terminSmS";
 import { ALERTHISTORYSERVICE } from "./alertHistoryService";
 import { emitFarmUpdate } from "../Socket/handler/farm.handler";
 import { buildFarmUpdatePayload } from "../Socket/handler/farmPayload";
 import frontEndUI from "../Models/frontEndUI";
-import { TestAIPayload } from "../type/types";
+import { FarmUpdatePayload, TestAIPayload } from "../type/types";
 
 
 
-const FASTAPI_URL = process.env.FASTAPI_URL || "http://localhost:8000/predict";
+const getFastApiUrl = (): string => {
+  const fastApiUrl = process.env.FAST_API_URL;
+
+  if (typeof fastApiUrl !== "string" || fastApiUrl.length === 0) {
+    throw new Error(
+      "FAST_API_URL is not configured. Set it in backend/.env before running the AI test.",
+    );
+  }
+
+  return fastApiUrl;
+};
+
+type AIResult = {
+  status: string;
+  threat_name: string;
+  percentage: number;
+};
 
 // Helper function to convert time number to string
 const getTimeOfDayString = (timeOfDay: number): "morning" | "evening" => {
@@ -20,17 +36,18 @@ const getTimeOfDayString = (timeOfDay: number): "morning" | "evening" => {
 
 // This service is for testing the AI integration with custom payloads
 export const TESTINGSERVICE = {
-  testAIAlgorithm: async (payload: TestAIPayload): Promise<void> => {
+  testAIAlgorithm: async (payload: TestAIPayload): Promise<AIResult> => {
     try {
+      const FASTAPI_URL = getFastApiUrl();
+
       const config = await Configuration.findOne({
         machine_location: payload.machine_location,
       }).lean();
 
       if (!config) {
-        console.error(
-          `[Test AI] No config found for ${payload.machine_location} — skipping`,
+        throw new Error(
+          `No config found for ${payload.machine_location} — cannot run AI test`,
         );
-        return;
       }
 
       const today = new Date();
@@ -80,8 +97,8 @@ export const TESTINGSERVICE = {
           date: today,
           time_of_day: timeOfDayStr,
         },
-        aggregateData,
-        { upsert: true, new: true },
+        { $set: aggregateData },
+        { upsert: true, returnDocument: 'after' },
       );
 
       // Prepare FastAPI payload with correct field names
@@ -113,22 +130,31 @@ export const TESTINGSERVICE = {
       const aiResponse = await axios.post(FASTAPI_URL, fastApiPayload);
 
       if (!aiResponse.data) {
-        console.error(`[Test AI] No data received from AI response`);
-        return;
+        throw new Error(`No data received from AI response`);
       }
 
-      const { health_status, prediction, confidence_percentage } =
-        aiResponse.data;
+      // FastAPI returns { status: "Safe"|"Disease", threat_name: "None"|"[disease_name]", percentage: [0-100] }
+      const { status, threat_name, percentage } = aiResponse.data as AIResult;
+
+      if (!status || threat_name === undefined || percentage === undefined) {
+        throw new Error(
+          `Invalid AI response format: ${JSON.stringify(aiResponse.data)}`,
+        );
+      }
 
       console.log(
-        `[Test AI] Health Status: ${health_status}, Prediction: ${prediction}, Confidence: ${confidence_percentage}%`,
+        `[Test AI] Status: ${status}, Threat: ${threat_name}, Confidence: ${percentage}%`,
       );
+
+      // Calculate the planting date from the plant age
+      const plantingDate = new Date(today);
+      plantingDate.setDate(plantingDate.getDate() - payload.Plant_Age_Days);
 
       const aiDoc = await AIprediction.create({
         machine_location: payload.machine_location,
         time_of_day: timeOfDayStr,
         beans_status: {
-          beans_age_days: payload.Plant_Age_Days,
+          beans_planting_date: plantingDate,
           beans_growth_stage: payload.Growth_Stage,
         },
 
@@ -155,20 +181,22 @@ export const TESTINGSERVICE = {
         },
 
         ai_result: {
-          farm_status: health_status,
-          prediction: prediction,
-          confidence_percentage: confidence_percentage,
+          farm_status: status,
+          prediction: threat_name,
+          confidence_percentage: percentage,
         },
       });
 
       // Update the DailyAggregate with AI prediction info
       await DailyAggregate.findByIdAndUpdate(saved._id, {
-        ai_prediction_sent: true,
-        ai_prediction_id: aiDoc._id,
+        $set: {
+          ai_prediction_sent: true,
+          ai_prediction_id: aiDoc._id,
+        }
       });
 
       // ── Emit Socket.io update to frontend ──────────────────────────────────
-      const livePayload = buildFarmUpdatePayload({
+      const livePayload: FarmUpdatePayload = buildFarmUpdatePayload({
         machineLocation: payload.machine_location,
         temperature: payload.Max_Temp_C,
         humidity: payload.Avg_Day_Hum,
@@ -176,8 +204,8 @@ export const TESTINGSERVICE = {
         soilMoisture: payload.Soil_Moisture,
         light_level: 0, // Not available from test payload
         pollingRateMinutes: config.sensorPollingRateMinutes,
-        prediction: prediction,
-        confidence: confidence_percentage,
+        prediction: threat_name,
+        confidence: percentage,
       });
 
       const updateData: any = {
@@ -196,7 +224,7 @@ export const TESTINGSERVICE = {
       const savedUI = await frontEndUI.findOneAndUpdate(
         { machine_location: payload.machine_location },
         { $set: updateData },
-        { upsert: true, new: true },
+        { upsert: true, returnDocument: 'after' },
       );
 
       if (savedUI) {
@@ -216,7 +244,7 @@ export const TESTINGSERVICE = {
       const alertContext = {
         machine_location: payload.machine_location,
         time_of_day: timeOfDayStr,
-        confidence: confidence_percentage,
+        confidence: percentage,
         plant_age_days: payload.Plant_Age_Days,
         growth_stage: payload.Growth_Stage,
         max_temp_c: payload.Max_Temp_C,
@@ -225,14 +253,14 @@ export const TESTINGSERVICE = {
         avg_night_hum_percent: payload.Avg_Night_Hum,
       };
 
-      if (confidence_percentage >= config.aiConfidence && prediction !== "Safe") {
+      if (percentage >= config.aiConfidence && threat_name !== "None" && status !== "Safe") {
         console.log(
-          `[Test AI] ⚠ Alert threshold met — SMS will be sent for: ${prediction} with confidence ${confidence_percentage}% at ${payload.machine_location} (${timeOfDayStr})`,
+          `[Test AI] ⚠ Alert threshold met — SMS will be sent for: ${threat_name} with confidence ${percentage}% at ${payload.machine_location} (${timeOfDayStr})`,
         );
 
         const smsAlertResult = await sendFarmAlert(
-          prediction,
-          confidence_percentage,
+          threat_name,
+          percentage,
           alertContext,
         );
 
@@ -241,11 +269,11 @@ export const TESTINGSERVICE = {
         // Create an alert history record in MongoDB
         const alertRecord = await ALERTHISTORYSERVICE.create({
           machine_location: payload.machine_location,
-          farmstatus: prediction,
+          farmstatus: threat_name,
           smsAlertSent: smsAlertResult.success ? "alert sent" : "alert failed",
           alertSentAt: alertTimestamp,
-          status: prediction,
-          confidence: confidence_percentage,
+          status: threat_name,
+          confidence: percentage,
           timeStamp: alertTimestamp,
         });
 
@@ -254,18 +282,26 @@ export const TESTINGSERVICE = {
         );
       } else {
         console.log(
-          `[Test AI] Alert threshold not met — no SMS sent for: ${prediction}`,
+          `[Test AI] Alert threshold not met — no SMS sent for: ${threat_name}`,
         );
       }
 
       console.log(
         `[Test AI] ✅ Test run complete for ${payload.machine_location}\n`,
       );
+
+      // Return the AI result to the controller
+      return {
+        status,
+        threat_name,
+        percentage,
+      };
     } catch (error: any) {
       console.error(
         `[Test AI] ❌ Error during test run for ${payload.machine_location}:`,
         error.message,
       );
+      throw error;
     }
   },
 };

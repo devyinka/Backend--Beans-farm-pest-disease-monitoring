@@ -1,11 +1,11 @@
 import { AlertContext } from "../type/types";
 
-export const buildMessage = (prediction: string, ctx: AlertContext): string => {
-  const time = ctx.time_of_day === "morning" ? "Morning" : "Evening";
-  const loc = ctx.machine_location;
-  const conf = ctx.confidence;
-  const stage = ctx.growth_stage.toUpperCase();
-  const age = ctx.plant_age_days;
+export const buildMessage = (prediction: string, context: AlertContext): string => {
+  const time = context.time_of_day === "morning" ? "Morning" : "Evening";
+  const loc = context.machine_location;
+  const conf = context.confidence;
+  const stage = context.growth_stage.toUpperCase();
+  const age = context.plant_age_days;
 
   // Shared header for all alerts
   const header =
@@ -19,21 +19,21 @@ export const buildMessage = (prediction: string, ctx: AlertContext): string => {
     "Disease: Anthracnose":
       header +
       `ANTHRACNOSE FUNGUS DETECTED\n` +
-      `Conditions: High humidity and wet weather (${ctx.rain_level_mm}mm rain) detected.\n` +
+      `Conditions: High humidity and wet weather (${context.rain_level_mm}mm rain) detected.\n` +
       `Action: Activate FUNGICIDE pump (Mancozeb/Chlorothalonil). ` +
       `Avoid working in the field while plants are wet to prevent spreading spores. Remove infected pods.`,
 
     "Pest: Bean Aphids":
       header +
       `BEAN APHIDS DETECTED\n` +
-      `Conditions: Warm, dry weather (${ctx.max_temp_c}°C) and low soil moisture causing plant stress.\n` +
+      `Conditions: Warm, dry weather (${context.max_temp_c}°C) and low soil moisture causing plant stress.\n` +
       `Action: Activate PESTICIDE pump (Neem oil or Insecticidal soap). ` +
       `Inspect the undersides of leaves where aphids cluster. Increase irrigation to reduce drought stress.`,
 
     "Pest: Bean Pod Borer":
       header +
       `BEAN POD BORER (MARUCA) DETECTED\n` +
-      `Conditions: Crop has reached the critical flowering stage (Day ${ctx.plant_age_days}) with warm temperatures (${ctx.max_temp_c}°C).\n` +
+      `Conditions: Crop has reached the critical flowering stage (Day ${context.plant_age_days}) with warm temperatures (${context.max_temp_c}°C).\n` +
       `Action: Activate PESTICIDE pump (Cypermethrin). ` +
       `Inspect flowers and developing bean pods for webbing and larvae holes immediately.`
   };
