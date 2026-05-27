@@ -4,20 +4,31 @@ import mqtt, { MqttClient } from "mqtt";
 let mqttClient: MqttClient | null = null;
 
 export const connectMQTT = async (): Promise<void> => {
+  const brokerHost = process.env.HiveMQTT_BROKER_URL;
+  const brokerPort = process.env.HiveMQTT_BROKER_PORT;
+  const brokerUsername = process.env.HiveMQTT_USERNAME;
+  const brokerPassword = process.env.HiveMQTT_PASSWORD;
+
+  if (!brokerHost || !brokerPort || !brokerUsername || !brokerPassword) {
+    console.warn("MQTT not configured. Skipping broker connection.");
+    return;
+  }
+
+  const brokerUrl = brokerHost.startsWith("mqtt://") || brokerHost.startsWith("mqtts://")
+    ? brokerHost
+    : `mqtts://${brokerHost}:${brokerPort}`;
+
   try {
-    mqttClient = await mqtt.connectAsync(
-      "135e2067aa8b40e7b8ee44698f52f249.s1.eu.hivemq.cloud",
-      {
-        port: parseInt(process.env.HiveMQTT_BROKER_PORT!),
-        username: process.env.HiveMQTT_USERNAME!,
-        password: process.env.HiveMQTT_PASSWORD!,
-        protocol: "mqtts",
-      }
-    );
+    mqttClient = await mqtt.connectAsync(brokerUrl, {
+      port: Number.parseInt(brokerPort, 10),
+      username: brokerUsername,
+      password: brokerPassword,
+      protocol: "mqtts",
+    });
     console.log("Successfully connected to HiveMQ!");
   } catch (error) {
     console.error("Failed to connect to MQTT broker:", error);
-    throw error;
+    mqttClient = null;
   }
 };
 
