@@ -13,10 +13,7 @@ export const getAllowedOrigins = (): string[] => {
 
   // Keep local development working even if env vars are missing or loaded late.
   const localFallbackOrigins = [
-    "http://localhost:3000",
-    "http://localhost:3001",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
   ];
 
   return Array.from(
