@@ -44,6 +44,7 @@ app.use(
       "https://wokwi.com",
       "http://localhost:3000",
       "https://wokwi.com/projects/460235036009124865",
+      "https://beans-farm-pest-disease-monitoring.vercel.app/"
     ], // Allows Wokwi and your Next.js app
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
