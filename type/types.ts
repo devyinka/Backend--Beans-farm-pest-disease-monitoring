@@ -93,7 +93,7 @@ export interface FarmInfo {
 }
 
 export interface FarmUpdatePayload {
-  timestamp: string;
+  timeStamp: string;
   datainterval?: number;
   sensors: FarmSensorReading[];
   AIData: FarmAIData;

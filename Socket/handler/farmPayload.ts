@@ -113,7 +113,7 @@ export const buildFarmUpdatePayload = ({
   };
 
   return {
-    timestamp: new Date().toISOString(),
+    timeStamp: new Date().toISOString(),
     datainterval: pollingRateMinutes,
     sensors,
     AIData: aiData,

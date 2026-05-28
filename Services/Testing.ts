@@ -229,7 +229,7 @@ export const TESTINGSERVICE = {
 
       if (savedUI) {
         emitFarmUpdate({
-          timestamp: savedUI.timeStamp.toISOString(),
+          timeStamp: savedUI.timeStamp.toISOString(),
           datainterval: config.sensorPollingRateMinutes,
           sensors: livePayload.sensors,
           AIData: livePayload.AIData,

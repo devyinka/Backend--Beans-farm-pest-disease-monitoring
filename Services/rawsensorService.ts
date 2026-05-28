@@ -103,7 +103,7 @@ export const RAWSENSORSSERVICE = {
 
     if (savedUI) {
       emitFarmUpdate({
-        timestamp: savedUI.timeStamp.toISOString(),
+        timeStamp: savedUI.timeStamp.toISOString(),
         datainterval: pollingRateMinutes, //  Passed from your local config variable
         sensors: savedUI.sensors as FarmSensorReading[],
         AIData: savedUI.AIData as FarmAIData,
