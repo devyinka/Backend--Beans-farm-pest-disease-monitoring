@@ -127,7 +127,7 @@ export const TESTINGSERVICE = {
         `[Test AI] Calling FastAPI at ${FASTAPI_URL} with payload...`,
       );
 
-      const aiResponse = await axios.post(`${FASTAPI_URL}/Predict `, fastApiPayload);
+      const aiResponse = await axios.post(`${FASTAPI_URL}/Predict`, fastApiPayload);
 
       if (!aiResponse.data) {
         throw new Error(`No data received from AI response`);
