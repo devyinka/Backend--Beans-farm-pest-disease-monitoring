@@ -76,6 +76,12 @@ export async function sendFarmAlert(
     console.error(`[Africa's Talking] ✗ ${errMsg}`);
   }
 
+console.log("--- AT DEBUG START ---");
+console.log("URL:", AT_BASE_URL);
+console.log("Username being sent:", AT_USERNAME);
+console.log("Key starting with:", AT_API_KEY?.substring(0, 5));
+console.log("--- AT DEBUG END ---");
+
   return {
     success: sids.length > 0,
     sids,
