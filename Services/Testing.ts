@@ -2,7 +2,7 @@ import axios from "axios";
 import AIprediction from "../Models/AIprediction";
 import DailyAggregate from "../Models/dailyAggregate";
 import Configuration from "../Models/configuration";
-import { sendFarmAlert } from "../utility/terminSmS";
+import {sendFarmAlert} from "../utility/africaltalking";
 import { ALERTHISTORYSERVICE } from "./alertHistoryService";
 import { emitFarmUpdate } from "../Socket/handler/farm.handler";
 import { buildFarmUpdatePayload } from "../Socket/handler/farmPayload";

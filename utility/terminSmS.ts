@@ -84,7 +84,7 @@ export async function sendSafeConditionSummary(
     from: TERMII_SENDER_ID,
     sms: body,
     type: "plain",
-    channel: "generic",
+    channel: "dnd",
     api_key: TERMII_API_KEY,
   };
 
