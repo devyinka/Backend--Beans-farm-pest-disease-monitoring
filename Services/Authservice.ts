@@ -124,6 +124,6 @@ export const AUTHSERVICE = {
     location: string,
   ): Promise<string | null> => {
     const user = await Register.findOne({ machine_location: location });
-    return user?.phoneNumber.replace(/[\s\-\+]/g, '') || null;
+    return user?.phoneNumber.replace(/[\s\-\+]/g, "") || null;
   },
 };

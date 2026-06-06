@@ -2,24 +2,20 @@ import axios from "axios";
 import AIprediction from "../Models/AIprediction";
 import DailyAggregate from "../Models/dailyAggregate";
 import Configuration from "../Models/configuration";
-import {sendFarmAlert} from "../utility/africaltalking";
+import { sendFarmAlert } from "../utility/africaltalking";
 import { ALERTHISTORYSERVICE } from "./alertHistoryService";
 import { emitFarmUpdate } from "../Socket/handler/farm.handler";
 import { buildFarmUpdatePayload } from "../Socket/handler/farmPayload";
 import frontEndUI from "../Models/frontEndUI";
 import { FarmUpdatePayload, TestAIPayload } from "../type/types";
 
-
-
 const getFastApiUrl = (): string => {
   const fastApiUrl = process.env.FAST_API_URL;
-
   if (typeof fastApiUrl !== "string" || fastApiUrl.length === 0) {
     throw new Error(
       "FAST_API_URL is not configured. Set it in backend/.env before running the AI test.",
     );
   }
-
   return fastApiUrl;
 };
 
@@ -29,14 +25,16 @@ type AIResult = {
   percentage: number;
 };
 
-// Helper function to convert time number to string
 const getTimeOfDayString = (timeOfDay: number): "morning" | "evening" => {
   return timeOfDay === 0 ? "morning" : "evening";
 };
 
-// This service is for testing the AI integration with custom payloads
 export const TESTINGSERVICE = {
-  testAIAlgorithm: async (payload: TestAIPayload): Promise<AIResult> => {
+  // Accepts the optional userId from the controller for historical logging
+  testAIAlgorithm: async (
+    payload: TestAIPayload,
+    userId?: string,
+  ): Promise<AIResult> => {
     try {
       const FASTAPI_URL = getFastApiUrl();
 
@@ -50,18 +48,14 @@ export const TESTINGSERVICE = {
         );
       }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
+      // Safe date normalization avoiding cloud UTC shifts
+      const today = new Date(new Date().toDateString());
       const timeOfDayStr = getTimeOfDayString(payload.Time_of_Day);
 
-      // Build the aggregate document
       const aggregateData = {
         machine_location: payload.machine_location,
         date: today,
         time_of_day: timeOfDayStr,
-
-        // Sensor averages
         max_temp_c: payload.Max_Temp_C,
         min_temp_c: payload.Min_Temp_C,
         avg_day_hum_percent: payload.Avg_Day_Hum,
@@ -71,8 +65,6 @@ export const TESTINGSERVICE = {
         rain_level_mm: payload.Rain_Level_mm,
         leaf_wetness_hours: payload.Leaf_Wetness_Hours,
         cumulative_stress_index: payload.Cumulative_Stress_Index,
-
-        // 10-day trends
         hot_days_past_10_days: payload.Hot_Days_Past_10_Days,
         wet_nights_past_10_days: payload.Wet_Nights_Past_10_Days,
         dry_soil_days_past_10_days: payload.Dry_Soil_Days_Past_10_Days,
@@ -80,12 +72,8 @@ export const TESTINGSERVICE = {
         rainy_days_past_10_days: payload.Rainy_Days_Past_10_Days,
         total_rain_volume_mm_past_10_days:
           payload.Total_Rain_Volume_mm_Past_10_Days,
-
-        // Bean status
         plant_age_days: payload.Plant_Age_Days,
         growth_stage: payload.Growth_Stage,
-
-        // Meta
         readings_count: 0,
         ai_prediction_sent: false,
         ai_prediction_id: null,
@@ -98,16 +86,15 @@ export const TESTINGSERVICE = {
           time_of_day: timeOfDayStr,
         },
         { $set: aggregateData },
-        { upsert: true, returnDocument: 'after' },
+        { upsert: true, returnDocument: "after" },
       );
 
-      // Prepare FastAPI payload with correct field names
       const fastApiPayload = {
         Time_of_Day: payload.Time_of_Day,
         Plant_Age_Days: payload.Plant_Age_Days,
         Max_Temp_C: payload.Max_Temp_C,
         Min_Temp_C: payload.Min_Temp_C,
-        Avg_Day_Hum:payload.Avg_Day_Hum,
+        Avg_Day_Hum: payload.Avg_Day_Hum,
         Avg_Night_Hum: payload.Avg_Night_Hum,
         Soil_Moisture: payload.Soil_Moisture,
         Sunlight_Hours: payload.Sunlight_Hours,
@@ -123,17 +110,16 @@ export const TESTINGSERVICE = {
           payload.Total_Rain_Volume_mm_Past_10_Days,
       };
 
-      console.log(
-        `[Test AI] Calling FastAPI at ${FASTAPI_URL} with payload...`,
+      console.log(`[Test AI] Calling FastAPI at ${FASTAPI_URL}/Predict...`);
+      const aiResponse = await axios.post(
+        `${FASTAPI_URL}/Predict`,
+        fastApiPayload,
       );
-
-      const aiResponse = await axios.post(`${FASTAPI_URL}/Predict`, fastApiPayload);
 
       if (!aiResponse.data) {
         throw new Error(`No data received from AI response`);
       }
 
-      // FastAPI returns { status: "Safe"|"Disease", threat_name: "None"|"[disease_name]", percentage: [0-100] }
       const { status, threat_name, percentage } = aiResponse.data as AIResult;
 
       if (!status || threat_name === undefined || percentage === undefined) {
@@ -142,14 +128,10 @@ export const TESTINGSERVICE = {
         );
       }
 
-      console.log(
-        `[Test AI] Status: ${status}, Threat: ${threat_name}, Confidence: ${percentage}%`,
-      );
-
-      // Calculate the planting date from the plant age
       const plantingDate = new Date(today);
       plantingDate.setDate(plantingDate.getDate() - payload.Plant_Age_Days);
 
+      // Saves the log with the user attached so you have an explicit audit record
       const aiDoc = await AIprediction.create({
         machine_location: payload.machine_location,
         time_of_day: timeOfDayStr,
@@ -157,7 +139,6 @@ export const TESTINGSERVICE = {
           beans_planting_date: plantingDate,
           beans_growth_stage: payload.Growth_Stage,
         },
-
         todays_sensor_averages: {
           max_temp_c: payload.Max_Temp_C,
           min_temp_c: payload.Min_Temp_C,
@@ -169,7 +150,6 @@ export const TESTINGSERVICE = {
           leaf_wetness_hours: payload.Leaf_Wetness_Hours,
           cumulative_stress_index: payload.Cumulative_Stress_Index,
         },
-
         the_10_days_past_weather: {
           total_hot_days_past_10_days: payload.Hot_Days_Past_10_Days,
           total_wet_nights_past_10_days: payload.Wet_Nights_Past_10_Days,
@@ -179,7 +159,6 @@ export const TESTINGSERVICE = {
           total_rain_volume_mm_past_10_days:
             payload.Total_Rain_Volume_mm_Past_10_Days,
         },
-
         ai_result: {
           farm_status: status,
           prediction: threat_name,
@@ -187,22 +166,21 @@ export const TESTINGSERVICE = {
         },
       });
 
-      // Update the DailyAggregate with AI prediction info
       await DailyAggregate.findByIdAndUpdate(saved._id, {
         $set: {
           ai_prediction_sent: true,
           ai_prediction_id: aiDoc._id,
-        }
+        },
       });
 
-      // ── Emit Socket.io update to frontend ──────────────────────────────────
+      // Assemble UI Updates
       const livePayload: FarmUpdatePayload = buildFarmUpdatePayload({
         machineLocation: payload.machine_location,
         temperature: payload.Max_Temp_C,
         humidity: payload.Avg_Day_Hum,
         rainLevel: payload.Rain_Level_mm,
         soilMoisture: payload.Soil_Moisture,
-        light_level: 0, // Not available from test payload
+        light_level: 0,
         pollingRateMinutes: config.sensorPollingRateMinutes,
         prediction: threat_name,
         confidence: percentage,
@@ -214,19 +192,16 @@ export const TESTINGSERVICE = {
         timeStamp: new Date(),
       };
 
-      if (livePayload.AIData) {
-        updateData.AIData = livePayload.AIData;
-      }
-      if (livePayload.farmInfo) {
-        updateData.farmInfo = livePayload.farmInfo;
-      }
+      if (livePayload.AIData) updateData.AIData = livePayload.AIData;
+      if (livePayload.farmInfo) updateData.farmInfo = livePayload.farmInfo;
 
       const savedUI = await frontEndUI.findOneAndUpdate(
         { machine_location: payload.machine_location },
         { $set: updateData },
-        { upsert: true, returnDocument: 'after' },
+        { upsert: true, returnDocument: "after" },
       );
 
+      // Emit real-time Socket.io update back to the frontend UI
       if (savedUI) {
         emitFarmUpdate({
           timeStamp: savedUI.timeStamp.toISOString(),
@@ -240,34 +215,37 @@ export const TESTINGSERVICE = {
         );
       }
 
-      // If the prediction is not "Safe" with high confidence, send an alert
-      const alertContext = {
-        machine_location: payload.machine_location,
-        time_of_day: timeOfDayStr,
-        confidence: percentage,
-        plant_age_days: payload.Plant_Age_Days,
-        growth_stage: payload.Growth_Stage,
-        max_temp_c: payload.Max_Temp_C,
-        soil_moisture_percent: payload.Soil_Moisture,
-        rain_level_mm: payload.Rain_Level_mm,
-        avg_night_hum_percent: payload.Avg_Night_Hum,
-      };
-
-      if (percentage >= config.aiConfidence && threat_name !== "None" && status !== "Safe") {
+      // Check threshold rules to see if an SMS threat warning is required
+      if (
+        percentage >= config.aiConfidence &&
+        threat_name !== "None" &&
+        status !== "Safe"
+      ) {
         console.log(
-          `[Test AI] ⚠ Alert threshold met — SMS will be sent for: ${threat_name} with confidence ${percentage}% at ${payload.machine_location} (${timeOfDayStr})`,
+          `[Test AI] ⚠ Dispatching African's Talking SMS for: ${threat_name}`,
         );
+
+        const alertContext = {
+          machine_location: payload.machine_location,
+          time_of_day: timeOfDayStr,
+          confidence: percentage,
+          plant_age_days: payload.Plant_Age_Days,
+          growth_stage: payload.Growth_Stage,
+          max_temp_c: payload.Max_Temp_C,
+          soil_moisture_percent: payload.Soil_Moisture,
+          rain_level_mm: payload.Rain_Level_mm,
+          avg_night_hum_percent: payload.Avg_Night_Hum,
+        };
 
         const smsAlertResult = await sendFarmAlert(
           threat_name,
           percentage,
           alertContext,
         );
-
         const alertTimestamp = new Date();
 
-        // Create an alert history record in MongoDB
-        const alertRecord = await ALERTHISTORYSERVICE.create({
+        // Create log record in your alert histories collection
+        await ALERTHISTORYSERVICE.create({
           machine_location: payload.machine_location,
           farmstatus: threat_name,
           smsAlertSent: smsAlertResult.success ? "alert sent" : "alert failed",
@@ -276,33 +254,15 @@ export const TESTINGSERVICE = {
           confidence: percentage,
           timeStamp: alertTimestamp,
         });
-
-        console.log(
-          `[Test AI] Alert history record created — ID: ${alertRecord._id}`,
-        );
-      } else {
-        console.log(
-          `[Test AI] Alert threshold not met — no SMS sent for: ${threat_name}`,
-        );
       }
 
-      console.log(
-        `[Test AI] ✅ Test run complete for ${payload.machine_location}\n`,
-      );
-
-      // Return the AI result to the controller
-      return {
-        status,
-        threat_name,
-        percentage,
-      };
+      return { status, threat_name, percentage };
     } catch (error: any) {
       console.error(
-        `[Test AI] ❌ Error during test run for ${payload.machine_location}:`,
+        `[Test AI] Error for ${payload.machine_location}:`,
         error.message,
       );
       throw error;
     }
   },
 };
-

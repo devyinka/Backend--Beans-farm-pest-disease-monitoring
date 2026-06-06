@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import { rateLimit } from "express-rate-limit";
 import { errorHandler } from "../middleware/errorHandler";
+import { authenticate } from "../middleware/auth";
 import registerRouter from "../Routes/Register";
 import loginRouter from "../Routes/login";
 import savesensordata from "../Routes/rawSensor";
@@ -38,20 +39,24 @@ app.use(cookieParser());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+const allowedOrigin = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:3000"];
+
 app.use(
   cors({
-    origin: [
-      "https://wokwi.com",
-      "http://localhost:3000",
-      "https://wokwi.com/projects/460235036009124865",
-      "https://beans-farm-pest-disease-monitoring.vercel.app"
-    ], // Allows Wokwi and your Next.js app
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigin.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   }),
 );
-
-
 
 app.use(
   rateLimit({
@@ -69,21 +74,22 @@ app.get("/", (_req, res) => {
   });
 });
 
-
-
-// Register application routes.
+// public routes
 app.use("/auth", registerRouter);
 app.use("/auth", loginRouter);
 app.use("/sensor", savesensordata);
 app.use("/alert", alertHistoryRouter);
 app.use("/UIStatus", getUIRouter);
-app.use("/Device", updateESP32andAIRouter);
 app.use("/get", getSensorPollingRateRouter);
+// protected routes - require valid JWT token
+app.use(authenticate);
+app.use("/Device", updateESP32andAIRouter);
 app.use("/get", beanPlantingDateRouter);
 app.use("/update", updateBeanPlantingDateRouter);
-app.use("/test",testingRouter)
+app.use("/test", testingRouter);
 app.use("/spraying", sprayingRouter);
-// Handle unknown routes with a clear API response.
+
+//hanle unknown routes
 app.use((_req, res) => {
   res.status(404).json({ message: "Route not found." });
 });

@@ -1,9 +1,17 @@
 import { Request, Response } from "express";
 import { CONFIGURATIONSERVICE } from "../Services/configurationService";
+import { AuthRequest } from "../middleware/auth";
 
-// This controller allows the frontend to fetch the bean planting date for a specific machine location. The frontend should send a GET request with the machine_location as a query parameter. The response will include the planting date and the last updated timestamp for that machine location.
-export const getBeanPlantingDate = async (req: Request, res: Response) => {
+export const getBeanPlantingDate = async (req: AuthRequest, res: Response) => {
   try {
+    const currentUserId = req.userId;
+    // Explicit safety guard: Ensure user has been authenticated by the JWT middleware layer
+    if (!currentUserId) {
+      return res
+        .status(401)
+        .json({ message: "Access denied. Invalid user identity context." });
+    }
+
     const { machine_location } = req.query;
     if (!machine_location) {
       return res.status(400).json({
@@ -23,8 +31,18 @@ export const getBeanPlantingDate = async (req: Request, res: Response) => {
 };
 
 // This controller allows the frontend to update the bean planting date for a specific machine location. The frontend should send a POST request with the machine_location and the new plantingDate in the request body. The updated configuration will be saved in the database, and the response will include the updated configuration data.
-export const updateBeanPlantingDate = async (req: Request, res: Response) => {
+export const updateBeanPlantingDate = async (
+  req: AuthRequest,
+  res: Response,
+) => {
   try {
+    const currentUserId = req.userId;
+    // Explicit safety guard: Ensure user has been authenticated by the JWT middleware layer
+    if (!currentUserId) {
+      return res
+        .status(401)
+        .json({ message: "Access denied. Invalid user identity context." });
+    }
     const { machine_location, plantingDate } = req.body;
     console.log("WHAT NODE SEES:", req.body);
     if (!machine_location || !plantingDate) {

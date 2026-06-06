@@ -1,8 +1,17 @@
 import { Request, Response } from "express";
 import { CONFIGURATIONSERVICE } from "../Services/configurationService";
+import { AuthRequest } from "../middleware/auth";
 
-export const updateESP32andAI = async (req: Request, res: Response) => {
+export const updateESP32andAI = async (req: AuthRequest, res: Response) => {
   try {
+    const currentUserId = req.userId;
+    // Explicit safety guard: Ensure user has been authenticated by the JWT middleware layer
+    if (!currentUserId) {
+      return res
+        .status(401)
+        .json({ message: "Access denied. Invalid user identity context." });
+    }
+
     const { machine_location, aiConfidence, sensorPollingRateMinutes } =
       req.body;
     if (
@@ -26,9 +35,8 @@ export const updateESP32andAI = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 };
-
 export const getSensorPollingRateandAIConfig = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
 ) => {
   try {
